@@ -1,0 +1,234 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: #020617;
+    color: #f1f5f9;
+    min-height: 100vh;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+  }
+
+  /* Remove number input spinners */
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+}
+
+@layer components {
+  /* Glass card effect */
+  .glass-card {
+    @apply bg-surface-900/60 backdrop-blur-xl border border-surface-700/50 rounded-xl;
+  }
+
+  .glass-card-hover {
+    @apply glass-card transition-all duration-300 hover:border-navy-500/30 hover:shadow-glow;
+  }
+
+  /* Premium button styles */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 
+           bg-gradient-to-r from-navy-500 to-navy-600 text-white font-medium rounded-lg
+           hover:from-navy-400 hover:to-navy-500 
+           focus:outline-none focus:ring-2 focus:ring-navy-500/50 focus:ring-offset-2 focus:ring-offset-surface-950
+           active:scale-[0.98] transition-all duration-200 
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 
+           bg-surface-800 text-surface-200 font-medium rounded-lg border border-surface-700
+           hover:bg-surface-700 hover:text-white 
+           focus:outline-none focus:ring-2 focus:ring-surface-500/50 focus:ring-offset-2 focus:ring-offset-surface-950
+           active:scale-[0.98] transition-all duration-200
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-success {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 
+           bg-gradient-to-r from-accent-600 to-accent-700 text-white font-medium rounded-lg
+           hover:from-accent-500 hover:to-accent-600 
+           focus:outline-none focus:ring-2 focus:ring-accent-500/50  
+           active:scale-[0.98] transition-all duration-200
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 
+           bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-lg
+           hover:from-red-500 hover:to-red-600  
+           active:scale-[0.98] transition-all duration-200
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 
+           text-surface-400 font-medium rounded-lg
+           hover:bg-surface-800 hover:text-white 
+           active:scale-[0.98] transition-all duration-200;
+  }
+
+  .btn-icon {
+    @apply inline-flex items-center justify-center p-2 rounded-lg
+           text-surface-400 hover:bg-surface-800 hover:text-white
+           active:scale-[0.95] transition-all duration-200;
+  }
+
+  /* Input styles */
+  .input {
+    @apply w-full px-4 py-2.5 bg-surface-800/80 border border-surface-700 rounded-lg
+           text-white placeholder-surface-500
+           focus:outline-none focus:ring-2 focus:ring-navy-500/50 focus:border-navy-500
+           transition-all duration-200;
+  }
+
+  .input-error {
+    @apply border-red-500/50 focus:ring-red-500/50 focus:border-red-500;
+  }
+
+  .label {
+    @apply block text-sm font-medium text-surface-300 mb-1.5;
+  }
+
+  /* Table styles */
+  .table-container {
+    @apply overflow-x-auto rounded-xl border border-surface-700/50;
+  }
+
+  .table {
+    @apply w-full text-sm text-left;
+  }
+
+  .table thead {
+    @apply bg-surface-800/80 border-b border-surface-700;
+  }
+
+  .table th {
+    @apply px-6 py-3.5 text-xs font-semibold uppercase tracking-wider text-surface-400;
+  }
+
+  .table tbody tr {
+    @apply border-b border-surface-800/50 hover:bg-surface-800/40 transition-colors;
+  }
+
+  .table td {
+    @apply px-6 py-4 text-surface-300;
+  }
+
+  /* Badge styles */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold;
+  }
+
+  .badge-draft { @apply bg-surface-700 text-surface-300; }
+  .badge-unpaid { @apply bg-orange-500/20 text-orange-400; }
+  .badge-paid { @apply bg-accent-500/20 text-accent-400; }
+  .badge-overdue { @apply bg-amber-500/20 text-amber-400; }
+  .badge-cancelled { @apply bg-red-500/20 text-red-400; }
+
+  .badge-admin { @apply bg-purple-500/20 text-purple-400; }
+  .badge-staff { @apply bg-navy-500/20 text-navy-400; }
+  .badge-viewer { @apply bg-surface-600/40 text-surface-300; }
+
+  /* Stat card */
+  .stat-card {
+    @apply glass-card p-5 flex flex-col gap-2 animate-fade-in;
+  }
+
+  /* Skeleton loading */
+  .skeleton {
+    @apply bg-surface-800 rounded animate-pulse;
+  }
+}
+
+/* ─── Print styles — only invoice prints ─── */
+@media print {
+  /* Reset page */
+  *,
+  *::before,
+  *::after {
+    color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  html, body {
+    background: white !important;
+    color: black !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 11px !important;
+  }
+
+  /* Hide everything that is NOT the invoice */
+  .no-print,
+  nav,
+  aside,
+  header,
+  [class*="Sidebar"],
+  [class*="Header"] {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Remove sidebar margin on content wrapper */
+  body > div > div > div {
+    margin-left: 0 !important;
+    padding: 0 !important;
+  }
+
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+  }
+
+  /* The invoice itself */
+  #invoice-print {
+    box-shadow: none !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border: none !important;
+  }
+
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+}

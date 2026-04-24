@@ -1,0 +1,293 @@
+// ─── Prisma Schema: Enterprise Billing System ───
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Company Profile (Settings) ───
+
+model CompanyProfile {
+  id          String  @id @default("default")
+  name        String
+  address     String
+  city        String  @default("")
+  state       String  @default("")
+  stateCode   String  @default("") @map("state_code")
+  pincode     String  @default("")
+  phone       String  @default("")
+  mobile      String  @default("")
+  email       String  @default("")
+  website     String  @default("")
+  gstin       String  @default("")
+  regNo       String  @default("") @map("reg_no")
+  factoryRegNo String @default("") @map("factory_reg_no")
+  // Bank details
+  bankName    String  @default("") @map("bank_name")
+  bankBranch  String  @default("") @map("bank_branch")
+  bankAccount String  @default("") @map("bank_account")
+  bankIfsc    String  @default("") @map("bank_ifsc")
+  // Logo
+  logoPath    String? @map("logo_path")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("company_profile")
+}
+
+// ─── User & Auth ───
+
+enum Role {
+  ADMIN
+  STAFF
+  VIEWER
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  name         String
+  passwordHash String    @map("password_hash")
+  role         Role      @default(STAFF)
+  mfaSecret    String?   @map("mfa_secret")
+  mfaEnabled   Boolean   @default(false) @map("mfa_enabled")
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLogin    DateTime? @map("last_login")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  sessions     Session[]
+  bills        Bill[]       @relation("CreatedByUser")
+  updatedBills Bill[]       @relation("UpdatedByUser")
+  customers    Customer[]   @relation("CreatedByUser")
+  auditLogs    AuditLog[]
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+model Session {
+  id               String   @id @default(uuid())
+  userId           String   @map("user_id")
+  refreshTokenHash String   @map("refresh_token_hash")
+  ipAddress        String   @map("ip_address")
+  userAgent        String   @map("user_agent")
+  expiresAt        DateTime @map("expires_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+// ─── Customer ───
+
+model Customer {
+  id        String   @id @default(uuid())
+  name      String
+  email     String?
+  phone     String?  // AES-256 encrypted
+  address   String?  // Full address text
+  gstin     String?  // AES-256 encrypted
+  state     String?
+  stateCode String?  @map("state_code")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdBy String   @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  creator User   @relation("CreatedByUser", fields: [createdBy], references: [id])
+  bills   Bill[]
+
+  @@index([name])
+  @@index([createdBy])
+  @@index([isActive])
+  @@map("customers")
+}
+
+// ─── Product ───
+
+enum UnitType {
+  PCS
+  KG
+  LTR
+  MTR
+  BOX
+  SET
+  HOUR
+  SERVICE
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  sku         String   @unique
+  hsnCode     String?  @map("hsn_code")  // HSN/SAC code for GST
+  unitPrice   Decimal  @map("unit_price") @db.Decimal(12, 2)
+  taxRate     Decimal  @map("tax_rate") @db.Decimal(5, 2)  // Total GST rate (e.g. 18%)
+  unit        UnitType @default(PCS)
+  stock       Int      @default(0)
+  category    String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  billItems BillItem[]
+
+  @@index([sku])
+  @@index([name])
+  @@index([category])
+  @@index([isActive])
+  @@map("products")
+}
+
+// ─── Bill / Invoice ───
+
+enum BillStatus {
+  DRAFT
+  UNPAID
+  PAID
+  CANCELLED
+}
+
+model Bill {
+  id              String     @id @default(uuid())
+  invoiceNumber   String     @unique @map("invoice_number")
+  invoiceDate     DateTime   @default(now()) @map("invoice_date")
+  customerId      String     @map("customer_id")
+  status          BillStatus @default(DRAFT)
+
+  // Purchase Order details
+  purchaseOrderNo   String?  @map("purchase_order_no")
+  poDate            DateTime? @map("po_date")
+  dcNo              String?  @map("dc_no")
+  dcDate            DateTime? @map("dc_date")
+
+  // Consignee / Shipped To (can differ from billed-to customer)
+  consigneeName     String?  @map("consignee_name")
+  consigneeAddress  String?  @map("consignee_address")
+  consigneeGstin    String?  @map("consignee_gstin")
+  consigneeState    String?  @map("consignee_state")
+  consigneeStateCode String? @map("consignee_state_code")
+
+  // Amounts
+  subtotal      Decimal    @db.Decimal(14, 2)
+  cgstTotal     Decimal    @default(0) @map("cgst_total") @db.Decimal(14, 2)
+  sgstTotal     Decimal    @default(0) @map("sgst_total") @db.Decimal(14, 2)
+  igstTotal     Decimal    @default(0) @map("igst_total") @db.Decimal(14, 2)
+  taxTotal      Decimal    @map("tax_total") @db.Decimal(14, 2)
+  discountTotal Decimal    @default(0) @map("discount_total") @db.Decimal(14, 2)
+  grandTotal    Decimal    @map("grand_total") @db.Decimal(14, 2)
+
+  notes         String?
+  paidAt        DateTime?  @map("paid_at")
+  pdfPath       String?    @map("pdf_path")
+  createdBy     String     @map("created_by")
+  updatedBy     String?    @map("updated_by")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+
+  customer Customer   @relation(fields: [customerId], references: [id])
+  creator  User       @relation("CreatedByUser", fields: [createdBy], references: [id])
+  updater  User?      @relation("UpdatedByUser", fields: [updatedBy], references: [id])
+  items    BillItem[]
+
+  @@index([invoiceNumber])
+  @@index([customerId])
+  @@index([status])
+  @@index([createdBy])
+  @@index([createdAt])
+  @@map("bills")
+}
+
+model BillItem {
+  id            String   @id @default(uuid())
+  billId        String   @map("bill_id")
+  productId     String?  @map("product_id")
+  description   String
+  hsnCode       String?  @map("hsn_code")
+  quantity      Decimal  @db.Decimal(10, 3)
+  unitPrice     Decimal  @map("unit_price") @db.Decimal(12, 2)
+  grossValue    Decimal  @map("gross_value") @db.Decimal(14, 2) // qty * unitPrice
+  // GST split
+  cgstRate      Decimal  @default(0) @map("cgst_rate") @db.Decimal(5, 2)
+  cgstAmount    Decimal  @default(0) @map("cgst_amount") @db.Decimal(12, 2)
+  sgstRate      Decimal  @default(0) @map("sgst_rate") @db.Decimal(5, 2)
+  sgstAmount    Decimal  @default(0) @map("sgst_amount") @db.Decimal(12, 2)
+  igstRate      Decimal  @default(0) @map("igst_rate") @db.Decimal(5, 2)
+  igstAmount    Decimal  @default(0) @map("igst_amount") @db.Decimal(12, 2)
+  taxRate       Decimal  @map("tax_rate") @db.Decimal(5, 2)   // Total GST rate
+  taxAmount     Decimal  @map("tax_amount") @db.Decimal(12, 2) // Total tax
+  lineTotal     Decimal  @map("line_total") @db.Decimal(14, 2) // gross + tax
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  bill    Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+
+  @@index([billId])
+  @@index([productId])
+  @@map("bill_items")
+}
+
+// ─── Tax Configuration ───
+
+enum TaxCategory {
+  GST
+  CGST
+  SGST
+  IGST
+  VAT
+  CUSTOM
+}
+
+model TaxConfig {
+  id       String      @id @default(uuid())
+  name     String
+  rate     Decimal     @db.Decimal(5, 2)
+  type     TaxCategory
+  isActive Boolean     @default(true) @map("is_active")
+
+  @@map("tax_configs")
+}
+
+// ─── Invoice Counter (atomic numbering) ───
+
+model InvoiceCounter {
+  id            String @id @default(uuid())
+  prefix        String @default("INV")
+  currentNumber Int    @default(0) @map("current_number")
+  year          Int
+
+  @@unique([prefix, year])
+  @@map("invoice_counters")
+}
+
+// ─── Audit Log (tamper-proof) ───
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  action    String
+  entity    String
+  entityId  String?  @map("entity_id")
+  changes   Json?
+  ipAddress String   @map("ip_address")
+  timestamp DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([timestamp])
+  @@index([action])
+  @@map("audit_logs")
+}
