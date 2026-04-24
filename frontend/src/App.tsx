@@ -12,6 +12,7 @@ import ProductsPage from './pages/ProductsPage';
 import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
 import UserManagementPage from './pages/UserManagementPage';
+import HistoryPage from './pages/HistoryPage';
 import NotFoundPage from './pages/NotFoundPage';
 import InvoicePreviewPage from './pages/InvoicePreviewPage';
 
@@ -60,10 +61,12 @@ export default function App() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/bills" element={<BillingPage />} />
             <Route path="/bills/new" element={<CreateBillPage />} />
+            <Route path="/bills/:id/edit" element={<CreateBillPage />} />
             <Route path="/bills/:id" element={<InvoicePreviewPage />} />
             <Route path="/customers" element={<CustomersPage />} />
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/history" element={<HistoryPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route
               path="/users"

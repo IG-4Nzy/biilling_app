@@ -90,10 +90,10 @@ export default function ProductsPage() {
       <div className="glass-card">
         <div className="table-container border-0 rounded-none">
           <table className="table">
-            <thead><tr><th>Product</th><th>SKU</th><th>HSN</th><th>Price</th><th>Tax</th><th>Stock</th><th className="text-right">Actions</th></tr></thead>
+            <thead><tr><th>Product</th><th>SKU</th><th>HSN</th><th>Price</th><th>Stock</th><th className="text-right">Actions</th></tr></thead>
             <tbody>
               {isLoading ? Array.from({ length: 5 }).map((_, i) => (
-                <tr key={i}>{Array.from({ length: 7 }).map((_, j) => <td key={j}><div className="skeleton w-20 h-4 rounded" /></td>)}</tr>
+                <tr key={i}>{Array.from({ length: 6 }).map((_, j) => <td key={j}><div className="skeleton w-20 h-4 rounded" /></td>)}</tr>
               )) : products.length ? products.map((p: any) => (
                 <tr key={p.id}>
                   <td>
@@ -105,7 +105,6 @@ export default function ProductsPage() {
                   <td className="font-mono text-xs text-surface-400">{p.sku}</td>
                   <td className="font-mono text-xs text-surface-400">{p.hsnCode || '—'}</td>
                   <td className="text-white font-semibold">{formatCurrency(p.unitPrice)}</td>
-                  <td className="text-surface-400">{p.taxRate}%</td>
                   <td>
                     <span className={`font-medium ${p.stock < 10 ? 'text-red-400' : p.stock < 50 ? 'text-amber-400' : 'text-accent-400'}`}>
                       {p.stock} {p.unit}
@@ -121,7 +120,7 @@ export default function ProductsPage() {
                   </td>
                 </tr>
               )) : (
-                <tr><td colSpan={7} className="text-center py-12">
+                <tr><td colSpan={6} className="text-center py-12">
                   <Package className="w-12 h-12 text-surface-700 mx-auto mb-3" />
                   <p className="text-surface-500">No products yet</p>
                 </td></tr>
@@ -165,14 +164,10 @@ export default function ProductsPage() {
                     <input {...register('category')} className="input" placeholder="e.g. Services" />
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="label">Price (₹) *</label>
                     <input type="number" {...register('unitPrice', { valueAsNumber: true })} className="input" min="0" step="0.01" />
-                  </div>
-                  <div>
-                    <label className="label">Tax Rate % *</label>
-                    <input type="number" {...register('taxRate', { valueAsNumber: true })} className="input" min="0" max="100" />
                   </div>
                   <div>
                     <label className="label">Stock *</label>

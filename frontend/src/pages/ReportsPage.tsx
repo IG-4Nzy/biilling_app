@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
-import { Download, Calendar, BarChart3, TrendingUp, Users, Package } from 'lucide-react';
+import { Download, Calendar, TrendingUp, Users } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { reportService } from '../services/api';
 import { formatCurrency, downloadBlob } from '../utils/formatters';
@@ -10,7 +9,7 @@ import toast from 'react-hot-toast';
 const COLORS = ['#416cf0', '#14b880', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
 export default function ReportsPage() {
-  const [tab, setTab] = useState<'sales' | 'customers' | 'products'>('sales');
+  const [tab, setTab] = useState<'sales' | 'customers'>('sales');
   const [startDate, setStartDate] = useState(() => {
     const d = new Date(); d.setMonth(d.getMonth() - 1);
     return d.toISOString().split('T')[0];
@@ -27,12 +26,6 @@ export default function ReportsPage() {
     queryKey: ['reports', 'customers', startDate, endDate],
     queryFn: () => reportService.getCustomerSpending({ startDate, endDate }),
     enabled: tab === 'customers',
-  });
-
-  const { data: productData } = useQuery({
-    queryKey: ['reports', 'products', startDate, endDate],
-    queryFn: () => reportService.getTopProducts({ startDate, endDate }),
-    enabled: tab === 'products',
   });
 
   const handleExport = async () => {
@@ -75,7 +68,6 @@ export default function ReportsPage() {
             {[
               { key: 'sales', label: 'Sales', icon: TrendingUp },
               { key: 'customers', label: 'Customers', icon: Users },
-              { key: 'products', label: 'Products', icon: Package },
             ].map(({ key, label, icon: Icon }) => (
               <button key={key} onClick={() => setTab(key as any)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
@@ -151,31 +143,8 @@ export default function ReportsPage() {
                   <p className="text-sm font-semibold text-accent-400">{formatCurrency(c.totalSpent)}</p>
                 </div>
               ))}
+              {!customerData?.length && <div className="p-8 text-center text-surface-500">No customer data</div>}
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Products tab */}
-      {tab === 'products' && (
-        <div className="glass-card">
-          <div className="p-4 border-b border-surface-800"><h3 className="text-base font-semibold text-white">Product Performance</h3></div>
-          <div className="table-container border-0 rounded-none">
-            <table className="table">
-              <thead><tr><th>#</th><th>Product</th><th>SKU</th><th>Qty Sold</th><th>Orders</th><th className="text-right">Revenue</th></tr></thead>
-              <tbody>
-                {productData?.map((p: any, i: number) => (
-                  <tr key={p.productId}>
-                    <td className="text-surface-500 font-medium">{i + 1}</td>
-                    <td className="text-white font-medium">{p.productName}</td>
-                    <td className="font-mono text-xs text-surface-400">{p.sku}</td>
-                    <td className="text-surface-300">{p.totalQuantity}</td>
-                    <td className="text-surface-300">{p.orderCount}</td>
-                    <td className="text-right font-semibold text-accent-400">{formatCurrency(p.totalRevenue)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </div>
       )}

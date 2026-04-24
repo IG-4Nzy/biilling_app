@@ -11,7 +11,6 @@ export const BILL_STATUSES = {
   DRAFT: 'DRAFT',
   UNPAID: 'UNPAID',
   PAID: 'PAID',
-  OVERDUE: 'OVERDUE',
   CANCELLED: 'CANCELLED',
 } as const;
 export type BillStatus = (typeof BILL_STATUSES)[keyof typeof BILL_STATUSES];

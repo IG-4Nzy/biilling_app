@@ -54,6 +54,7 @@ model User {
   name         String
   passwordHash String    @map("password_hash")
   role         Role      @default(STAFF)
+  privileges   Json      @default("[]")
   mfaSecret    String?   @map("mfa_secret")
   mfaEnabled   Boolean   @default(false) @map("mfa_enabled")
   isActive     Boolean   @default(true) @map("is_active")

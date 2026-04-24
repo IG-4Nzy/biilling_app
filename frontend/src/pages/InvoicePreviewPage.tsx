@@ -69,7 +69,7 @@ export default function InvoicePreviewPage() {
       {/* Invoice — printable area */}
       <div ref={printRef} id="invoice-print"
         className="bg-white text-black max-w-[210mm] mx-auto shadow-xl"
-        style={{ fontFamily: "'Times New Roman', serif", fontSize: '11px', lineHeight: '1.4' }}>
+        style={{ fontFamily: "'Times New Roman', serif", fontSize: '11px', lineHeight: '1.4', minHeight: '297mm' }}>
         <div className="p-6">
 
           {/* ─── HEADER ─── */}

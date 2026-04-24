@@ -3,6 +3,7 @@ import { prisma } from '../../config/database.js';
 import { authenticate } from '../../middleware/auth.middleware.js';
 import { staffOrAdmin } from '../../middleware/rbac.middleware.js';
 import { exportLimiter } from '../../middleware/rateLimiter.middleware.js';
+import { Prisma } from '@prisma/client';
 
 const router = Router();
 router.use(authenticate, staffOrAdmin);
@@ -25,7 +26,7 @@ router.get('/sales', async (req, res, next) => {
 
     const salesData = await prisma.$queryRaw<Array<{ period: string; total_revenue: number; bill_count: number; paid_count: number }>>`
       SELECT 
-        TO_CHAR(created_at, ${dateFormat}) as period,
+        TO_CHAR(created_at, ${Prisma.raw(`'${dateFormat}'`)}) as period,
         COALESCE(SUM(grand_total), 0)::float as total_revenue,
         COUNT(*)::int as bill_count,
         COUNT(*) FILTER (WHERE status = 'PAID')::int as paid_count
@@ -166,9 +167,9 @@ router.get('/export', exportLimiter, async (req, res, next) => {
       });
 
       if (format === 'csv') {
-        const csvHeader = 'Invoice Number,Customer,Status,Subtotal,Tax,Discount,Grand Total,Created At,Due Date,Paid At\n';
+        const csvHeader = 'Invoice Number,Customer,Status,Subtotal,CGST,SGST,Tax,Grand Total,Invoice Date,Paid At\n';
         const csvRows = bills.map((b) =>
-          `"${b.invoiceNumber}","${b.customer.name}","${b.status}",${b.subtotal},${b.taxTotal},${b.discountTotal},${b.grandTotal},"${b.createdAt.toISOString()}","${b.dueDate?.toISOString() || ''}","${b.paidAt?.toISOString() || ''}"`
+          `"${b.invoiceNumber}","${b.customer.name}","${b.status}",${b.subtotal},${b.cgstTotal},${b.sgstTotal},${b.taxTotal},${b.grandTotal},"${b.invoiceDate?.toISOString() || ''}","${b.paidAt?.toISOString() || ''}"`
         ).join('\n');
 
         res.setHeader('Content-Type', 'text/csv');

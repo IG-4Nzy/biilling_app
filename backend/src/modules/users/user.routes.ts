@@ -6,12 +6,22 @@ import { validate } from '../../middleware/validate.middleware.js';
 import { auditLog } from '../../middleware/audit.middleware.js';
 import { registerSchema } from '@billing/shared';
 import { AppError, NotFoundError } from '../../middleware/errorHandler.middleware.js';
+import { ALL_PRIVILEGES, DEFAULT_ROLE_PRIVILEGES } from '../../middleware/privilege.middleware.js';
 import bcrypt from 'bcrypt';
 
 const router = Router();
-
-// All routes require auth
 router.use(authenticate);
+
+// GET /api/users/privileges — List available privileges
+router.get('/privileges', adminOnly, async (_req, res) => {
+  res.json({
+    success: true,
+    data: {
+      all: ALL_PRIVILEGES,
+      defaults: DEFAULT_ROLE_PRIVILEGES,
+    },
+  });
+});
 
 // GET /api/users — List users (admin only)
 router.get('/', adminOnly, async (req, res, next) => {
@@ -33,12 +43,11 @@ router.get('/', adminOnly, async (req, res, next) => {
       prisma.user.findMany({
         where,
         select: {
-          id: true, email: true, name: true, role: true,
+          id: true, email: true, name: true, role: true, privileges: true,
           mfaEnabled: true, isActive: true, lastLogin: true,
           createdAt: true, updatedAt: true,
         },
-        skip,
-        take: limit,
+        skip, take: limit,
         orderBy: { createdAt: 'desc' },
       }),
       prisma.user.count({ where }),
@@ -58,14 +67,12 @@ router.get('/:id', adminOnly, async (req, res, next) => {
     const user = await prisma.user.findUnique({
       where: { id: req.params.id },
       select: {
-        id: true, email: true, name: true, role: true,
+        id: true, email: true, name: true, role: true, privileges: true,
         mfaEnabled: true, isActive: true, lastLogin: true,
         createdAt: true, updatedAt: true,
       },
     });
-
     if (!user) throw new NotFoundError('User');
-
     res.json({ success: true, data: user });
   } catch (err) { next(err); }
 });
@@ -73,19 +80,21 @@ router.get('/:id', adminOnly, async (req, res, next) => {
 // POST /api/users — Create user (admin only)
 router.post('/', adminOnly, auditLog('user'), validate(registerSchema), async (req, res, next) => {
   try {
-    const { email, name, password, role } = req.body;
+    const { email, name, password, role, privileges } = req.body;
 
     const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) {
-      throw new AppError('Email already registered', 409);
-    }
+    if (existing) throw new AppError('Email already registered', 409);
 
     const passwordHash = await bcrypt.hash(password, 12);
 
     const user = await prisma.user.create({
-      data: { email, name, passwordHash, role: role as any },
+      data: {
+        email, name, passwordHash,
+        role: role as any,
+        privileges: privileges || [],
+      },
       select: {
-        id: true, email: true, name: true, role: true,
+        id: true, email: true, name: true, role: true, privileges: true,
         mfaEnabled: true, isActive: true, createdAt: true, updatedAt: true,
       },
     });
@@ -97,7 +106,7 @@ router.post('/', adminOnly, auditLog('user'), validate(registerSchema), async (r
 // PUT /api/users/:id — Update user (admin only)
 router.put('/:id', adminOnly, auditLog('user'), async (req, res, next) => {
   try {
-    const { name, role, isActive } = req.body;
+    const { name, role, isActive, privileges } = req.body;
 
     const user = await prisma.user.update({
       where: { id: req.params.id },
@@ -105,9 +114,10 @@ router.put('/:id', adminOnly, auditLog('user'), async (req, res, next) => {
         ...(name && { name }),
         ...(role && { role: role as any }),
         ...(isActive !== undefined && { isActive }),
+        ...(privileges !== undefined && { privileges }),
       },
       select: {
-        id: true, email: true, name: true, role: true,
+        id: true, email: true, name: true, role: true, privileges: true,
         mfaEnabled: true, isActive: true, createdAt: true, updatedAt: true,
       },
     });
@@ -123,12 +133,11 @@ router.delete('/:id', adminOnly, auditLog('user'), async (req, res, next) => {
       where: { id: req.params.id },
       data: { isActive: false },
     });
-
     res.json({ success: true, message: 'User deactivated' });
   } catch (err) { next(err); }
 });
 
-// GET /api/users/:id/login-logs — Get user login history
+// GET /api/users/:id/login-logs — User login history
 router.get('/:id/login-logs', adminOnly, async (req, res, next) => {
   try {
     const logs = await prisma.auditLog.findMany({
@@ -139,7 +148,6 @@ router.get('/:id/login-logs', adminOnly, async (req, res, next) => {
       orderBy: { timestamp: 'desc' },
       take: 50,
     });
-
     res.json({ success: true, data: logs });
   } catch (err) { next(err); }
 });

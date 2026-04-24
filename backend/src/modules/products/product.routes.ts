@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../../config/database.js';
 import { authenticate } from '../../middleware/auth.middleware.js';
-import { staffOrAdmin } from '../../middleware/rbac.middleware.js';
+import { requirePrivilege } from '../../middleware/privilege.middleware.js';
 import { validate } from '../../middleware/validate.middleware.js';
 import { auditLog } from '../../middleware/audit.middleware.js';
 import { productCreateSchema, productUpdateSchema } from '@billing/shared';
@@ -12,7 +12,7 @@ const router = Router();
 router.use(authenticate);
 
 // GET /api/products
-router.get('/', staffOrAdmin, async (req, res, next) => {
+router.get('/', requirePrivilege('view_bill', 'add_products'), async (req, res, next) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 25;
@@ -51,7 +51,7 @@ router.get('/', staffOrAdmin, async (req, res, next) => {
 });
 
 // GET /api/products/:id
-router.get('/:id', staffOrAdmin, async (req, res, next) => {
+router.get('/:id', requirePrivilege('view_bill', 'add_products'), async (req, res, next) => {
   try {
     const product = await prisma.product.findUnique({
       where: { id: req.params.id },
@@ -67,7 +67,7 @@ router.get('/:id', staffOrAdmin, async (req, res, next) => {
 });
 
 // POST /api/products
-router.post('/', staffOrAdmin, auditLog('product'), validate(productCreateSchema), async (req, res, next) => {
+router.post('/', requirePrivilege('add_products'), auditLog('product'), validate(productCreateSchema), async (req, res, next) => {
   try {
     const product = await prisma.product.create({
       data: req.body,
@@ -81,7 +81,7 @@ router.post('/', staffOrAdmin, auditLog('product'), validate(productCreateSchema
 });
 
 // PUT /api/products/:id
-router.put('/:id', staffOrAdmin, auditLog('product'), validate(productUpdateSchema), async (req, res, next) => {
+router.put('/:id', requirePrivilege('edit_products'), auditLog('product'), validate(productUpdateSchema), async (req, res, next) => {
   try {
     const product = await prisma.product.update({
       where: { id: req.params.id },
@@ -96,7 +96,7 @@ router.put('/:id', staffOrAdmin, auditLog('product'), validate(productUpdateSche
 });
 
 // DELETE /api/products/:id (soft delete)
-router.delete('/:id', staffOrAdmin, auditLog('product'), async (req, res, next) => {
+router.delete('/:id', requirePrivilege('delete_products'), auditLog('product'), async (req, res, next) => {
   try {
     await prisma.product.update({
       where: { id: req.params.id },
@@ -109,7 +109,7 @@ router.delete('/:id', staffOrAdmin, auditLog('product'), async (req, res, next) 
 });
 
 // PATCH /api/products/:id/stock — Update stock
-router.patch('/:id/stock', staffOrAdmin, auditLog('product'), async (req, res, next) => {
+router.patch('/:id/stock', requirePrivilege('edit_products'), auditLog('product'), async (req, res, next) => {
   try {
     const { adjustment } = req.body; // positive = add, negative = subtract
 

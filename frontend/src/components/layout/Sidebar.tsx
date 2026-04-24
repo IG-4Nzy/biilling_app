@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, FileText, Users, Package, BarChart3,
-  Settings, Shield, LogOut, Menu, X, ChevronLeft, Zap,
+  Settings, Shield, LogOut, Menu, X, ChevronLeft, Zap, History,
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
@@ -15,6 +15,7 @@ const navItems = [
   { path: '/customers', label: 'Customers', icon: Users },
   { path: '/products', label: 'Products', icon: Package },
   { path: '/reports', label: 'Reports', icon: BarChart3 },
+  { path: '/history', label: 'History', icon: History },
   { path: '/settings', label: 'Settings', icon: Settings },
 ];
 
