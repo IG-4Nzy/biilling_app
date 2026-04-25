@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ConfirmModal from '../components/ConfirmModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Plus, Search, Edit2, Trash2, X, Loader2, Shield, Check } from 'lucide-react';
@@ -21,6 +22,7 @@ const ALL_PRIVILEGES = [
   { key: 'add_customers', label: 'Add Customers', group: 'Customers' },
   { key: 'edit_customers', label: 'Edit Customers', group: 'Customers' },
   { key: 'view_reports', label: 'View Reports', group: 'Reports' },
+  { key: 'view_history', label: 'View History', group: 'Reports' },
   { key: 'manage_users', label: 'Manage Users', group: 'Admin' },
 ];
 
@@ -32,6 +34,7 @@ export default function UserManagementPage() {
   const [showModal, setShowModal] = useState(false);
   const [editUser, setEditUser] = useState<any>(null);
   const [selectedPrivileges, setSelectedPrivileges] = useState<string[]>([]);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['users', search],
@@ -181,7 +184,7 @@ export default function UserManagementPage() {
                       <button onClick={() => openEditModal(u)} className="btn-icon" title="Edit privileges">
                         <Shield className="w-4 h-4 text-navy-400" />
                       </button>
-                      <button onClick={() => { if (confirm('Deactivate user?')) deleteMutation.mutate(u.id); }} className="btn-icon">
+                      <button onClick={() => setDeleteTarget(u.id)} className="btn-icon">
                         <Trash2 className="w-4 h-4 text-red-400" />
                       </button>
                     </div>
@@ -318,6 +321,15 @@ export default function UserManagementPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        title="Deactivate User"
+        message="Are you sure you want to deactivate this user? They will no longer be able to log in."
+        confirmLabel="Deactivate"
+        onConfirm={() => { if (deleteTarget) deleteMutation.mutate(deleteTarget); setDeleteTarget(null); }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

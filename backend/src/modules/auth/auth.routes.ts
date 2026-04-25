@@ -5,6 +5,9 @@ import { authLimiter } from '../../middleware/rateLimiter.middleware.js';
 import { validate } from '../../middleware/validate.middleware.js';
 import { loginSchema } from '@billing/shared';
 import { z } from 'zod';
+import bcrypt from 'bcrypt';
+import { prisma } from '../../config/database.js';
+import type { AuthRequest } from '../../middleware/auth.middleware.js';
 
 const router = Router();
 
@@ -22,16 +25,28 @@ router.post('/logout', authenticate, (req, res, next) => {
   authController.logout(req, res).catch(next);
 });
 
-router.post('/mfa/setup', authenticate, (req, res, next) => {
-  authController.setupMFA(req, res).catch(next);
-});
-
+// Change password
 router.post(
-  '/mfa/verify',
+  '/change-password',
   authenticate,
-  validate(z.object({ code: z.string().length(6) })),
-  (req, res, next) => {
-    authController.verifyMFA(req, res).catch(next);
+  validate(z.object({
+    currentPassword: z.string().min(1, 'Current password required'),
+    newPassword: z.string().min(8, 'Minimum 8 characters'),
+  })),
+  async (req: AuthRequest, res, next) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const user = await prisma.user.findUnique({ where: { id: req.userId! } });
+      if (!user) { res.status(404).json({ success: false, error: 'User not found' }); return; }
+
+      const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!valid) { res.status(400).json({ success: false, error: 'Current password is incorrect' }); return; }
+
+      const hash = await bcrypt.hash(newPassword, 12);
+      await prisma.user.update({ where: { id: req.userId! }, data: { passwordHash: hash } });
+
+      res.json({ success: true, message: 'Password changed successfully' });
+    } catch (err) { next(err); }
   }
 );
 

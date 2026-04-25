@@ -18,14 +18,9 @@ export const authService = {
     await api.post('/auth/logout', { refreshToken });
   },
 
-  setupMFA: async () => {
-    const { data } = await api.post('/auth/mfa/setup');
-    return data.data;
-  },
-
-  verifyMFA: async (code: string) => {
-    const { data } = await api.post('/auth/mfa/verify', { code });
-    return data.data;
+  changePassword: async (currentPassword: string, newPassword: string) => {
+    const { data } = await api.post('/auth/change-password', { currentPassword, newPassword });
+    return data;
   },
 
   getSessions: async () => {
@@ -127,8 +122,8 @@ export const productService = {
 };
 
 export const dashboardService = {
-  getStats: async () => {
-    const { data } = await api.get('/dashboard');
+  getStats: async (params: Record<string, any> = {}) => {
+    const { data } = await api.get('/dashboard', { params });
     return data.data;
   },
 };
@@ -155,11 +150,15 @@ export const reportService = {
   },
 
   exportCSV: async (params: Record<string, any> = {}) => {
-    const response = await api.get('/reports/export', {
-      params: { ...params, format: 'csv' },
-      responseType: 'blob',
+    const { useAuthStore } = await import('../stores/authStore');
+    const token = useAuthStore.getState().accessToken;
+    const query = new URLSearchParams({ ...params, format: 'csv' }).toString();
+    const response = await fetch(`/api/reports/export?${query}`, {
+      headers: { Authorization: `Bearer ${token}` },
     });
-    return response.data;
+    if (!response.ok) throw new Error('Export failed');
+    const text = await response.text();
+    return new Blob([text], { type: 'text/csv;charset=utf-8;' });
   },
 };
 
@@ -203,5 +202,18 @@ export const companyService = {
   update: async (profileData: any) => {
     const { data } = await api.put('/company', profileData);
     return data.data;
+  },
+
+  uploadLogo: async (file: File) => {
+    const formData = new FormData();
+    formData.append('logo', file);
+    const { data } = await api.post('/company/logo', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data.data;
+  },
+
+  deleteLogo: async () => {
+    await api.delete('/company/logo');
   },
 };

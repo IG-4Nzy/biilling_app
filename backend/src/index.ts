@@ -25,7 +25,7 @@ async function main() {
     httpServer.listen(env.PORT, () => {
       logger.info(`
 ╔══════════════════════════════════════════════╗
-║     Enterprise Billing System v1.0.0         ║
+║     ECMF Billing System v1.0.0               ║
 ║──────────────────────────────────────────────║
 ║  🚀 Server:    http://localhost:${env.PORT}        ║
 ║  📊 Health:    http://localhost:${env.PORT}/api/health ║

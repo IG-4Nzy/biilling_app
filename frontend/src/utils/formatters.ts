@@ -75,14 +75,18 @@ export function getRoleClass(role: string): string {
  * Download a blob as a file
  */
 export function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
+  const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
+  a.style.display = 'none';
   a.href = url;
   a.download = filename;
   document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
-  a.remove();
+  // Delay cleanup to let the download start
+  setTimeout(() => {
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  }, 500);
 }
 
 /**

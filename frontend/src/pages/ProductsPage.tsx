@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ConfirmModal from '../components/ConfirmModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Search, Edit2, Trash2, X, Loader2, Package } from 'lucide-react';
@@ -14,6 +15,7 @@ export default function ProductsPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
@@ -113,7 +115,7 @@ export default function ProductsPage() {
                   <td className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       <button onClick={() => openModal(p)} className="btn-icon"><Edit2 className="w-4 h-4" /></button>
-                      <button onClick={() => { if (confirm('Delete?')) deleteMutation.mutate(p.id); }} className="btn-icon">
+                      <button onClick={() => setDeleteTarget(p.id)} className="btn-icon">
                         <Trash2 className="w-4 h-4 text-red-400" />
                       </button>
                     </div>
@@ -193,6 +195,15 @@ export default function ProductsPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        title="Delete Product"
+        message="Are you sure you want to delete this product? This action cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={() => { if (deleteTarget) deleteMutation.mutate(deleteTarget); setDeleteTarget(null); }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

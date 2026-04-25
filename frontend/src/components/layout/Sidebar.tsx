@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, FileText, Users, Package, BarChart3,
-  Settings, Shield, LogOut, Menu, X, ChevronLeft, Zap, History,
+  Settings, Shield, LogOut, ChevronLeft, Zap, History,
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
@@ -26,7 +25,6 @@ const adminItems = [
 export default function Sidebar() {
   const { user, refreshToken, logout: authLogout } = useAuthStore();
   const { sidebarOpen, sidebarCollapsed, isMobile, setSidebarOpen, toggleCollapse } = useUIStore();
-  const location = useLocation();
 
   const handleLogout = async () => {
     try {
@@ -39,33 +37,38 @@ export default function Sidebar() {
 
   const sidebarContent = (
     <div className="flex flex-col h-full">
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-6 border-b border-surface-800">
+      {/* Logo — clicking it toggles collapse on desktop */}
+      <div
+        className="flex items-center gap-3 px-5 py-6 border-b border-surface-800 cursor-pointer"
+        onClick={() => !isMobile && toggleCollapse()}
+        title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+      >
         <div className="w-9 h-9 bg-gradient-to-br from-navy-500 to-accent-500 rounded-lg flex items-center justify-center flex-shrink-0">
           <Zap className="w-5 h-5 text-white" />
         </div>
         {!sidebarCollapsed && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="overflow-hidden">
-            <h1 className="text-lg font-bold text-white tracking-tight">BillForge</h1>
-            <p className="text-[10px] text-surface-500 uppercase tracking-widest">Enterprise</p>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="overflow-hidden flex-1">
+            <h1 className="text-lg font-bold text-white tracking-tight">ECMF</h1>
+            <p className="text-[10px] text-surface-500 uppercase tracking-widest">Billing System</p>
           </motion.div>
         )}
-        {!isMobile && (
-          <button onClick={toggleCollapse} className="ml-auto btn-icon hidden lg:flex">
+        {!isMobile && !sidebarCollapsed && (
+          <button onClick={(e) => { e.stopPropagation(); toggleCollapse(); }} className="btn-icon hidden lg:flex">
             <ChevronLeft className={`w-4 h-4 transition-transform ${sidebarCollapsed ? 'rotate-180' : ''}`} />
           </button>
         )}
       </div>
 
-      {/* Navigation */}
+      {/* Navigation with tooltips */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {allItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
             onClick={() => isMobile && setSidebarOpen(false)}
+            title={item.label}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group
+              `relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group
               ${isActive
                 ? 'bg-navy-500/15 text-navy-400 border border-navy-500/20'
                 : 'text-surface-400 hover:text-white hover:bg-surface-800/60'
@@ -75,6 +78,12 @@ export default function Sidebar() {
           >
             <item.icon className="w-5 h-5 flex-shrink-0" />
             {!sidebarCollapsed && <span>{item.label}</span>}
+            {/* Tooltip when collapsed */}
+            {sidebarCollapsed && (
+              <span className="absolute left-full ml-3 px-2 py-1 rounded-md bg-surface-800 text-white text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100] pointer-events-none shadow-lg border border-surface-700">
+                {item.label}
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>
@@ -94,10 +103,16 @@ export default function Sidebar() {
         )}
         <button
           onClick={handleLogout}
-          className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 transition-all ${sidebarCollapsed ? 'justify-center' : ''}`}
+          title="Logout"
+          className={`relative flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 transition-all group ${sidebarCollapsed ? 'justify-center' : ''}`}
         >
           <LogOut className="w-5 h-5" />
           {!sidebarCollapsed && <span>Logout</span>}
+          {sidebarCollapsed && (
+            <span className="absolute left-full ml-3 px-2 py-1 rounded-md bg-surface-800 text-white text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100] pointer-events-none shadow-lg border border-surface-700">
+              Logout
+            </span>
+          )}
         </button>
       </div>
     </div>

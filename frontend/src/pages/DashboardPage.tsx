@@ -1,19 +1,20 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   TrendingUp, IndianRupee, FileText, Users, Package,
-  AlertCircle, ArrowUpRight, ArrowDownRight, Clock,
+  AlertCircle, ArrowUpRight, CheckCircle, Clock,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, BarChart, Bar,
+  ResponsiveContainer,
 } from 'recharts';
 import { dashboardService } from '../services/api';
 import { formatCurrency, formatDate, getStatusClass } from '../utils/formatters';
 
-function StatCard({ title, value, icon: Icon, trend, color, delay = 0 }: {
-  title: string; value: string; icon: any;
-  trend?: { value: number; label: string };
+function StatCard({ title, value, subtitle, icon: Icon, color, delay = 0 }: {
+  title: string; value: string; subtitle?: string; icon: any;
   color: string; delay?: number;
 }) {
   return (
@@ -27,28 +28,24 @@ function StatCard({ title, value, icon: Icon, trend, color, delay = 0 }: {
         <div className={`p-2.5 rounded-xl bg-gradient-to-br ${color}`}>
           <Icon className="w-5 h-5 text-white" />
         </div>
-        {trend && (
-          <span className={`flex items-center gap-0.5 text-xs font-medium ${
-            trend.value >= 0 ? 'text-accent-400' : 'text-red-400'
-          }`}>
-            {trend.value >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-            {Math.abs(trend.value)}%
-          </span>
-        )}
       </div>
       <div className="mt-3">
         <p className="text-2xl font-bold text-white">{value}</p>
         <p className="text-xs text-surface-400 mt-0.5">{title}</p>
+        {subtitle && <p className="text-[10px] text-surface-500 mt-0.5">{subtitle}</p>}
       </div>
     </motion.div>
   );
 }
 
 export default function DashboardPage() {
+  const navigate = useNavigate();
+  const [monthFilter, setMonthFilter] = useState('');
+
   const { data: stats, isLoading, error } = useQuery({
-    queryKey: ['dashboard'],
-    queryFn: dashboardService.getStats,
-    refetchInterval: 60000, // Auto-refresh every minute
+    queryKey: ['dashboard', monthFilter],
+    queryFn: () => dashboardService.getStats(monthFilter ? { month: monthFilter } : {}),
+    refetchInterval: 60000,
   });
 
   if (isLoading) {
@@ -65,9 +62,7 @@ export default function DashboardPage() {
             </div>
           ))}
         </div>
-        <div className="glass-card p-6">
-          <div className="skeleton w-full h-64 rounded-lg" />
-        </div>
+        <div className="glass-card p-6"><div className="skeleton w-full h-64 rounded-lg" /></div>
       </div>
     );
   }
@@ -94,40 +89,61 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Revenue stats */}
+      {/* Header with month filter */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold text-white">Dashboard</h1>
+          <p className="text-sm text-surface-400">{stats?.periodLabel || 'This Month'}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <input type="month" value={monthFilter}
+            onChange={(e) => setMonthFilter(e.target.value)}
+            className="input py-2 text-sm w-44" />
+          {monthFilter && (
+            <button onClick={() => setMonthFilter('')}
+              className="text-xs text-surface-400 hover:text-white transition-colors">Clear</button>
+          )}
+        </div>
+      </div>
+
+      {/* Key stats — Total Bills, Total Amount, Received, Pending */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Today's Revenue"
-          value={formatCurrency(stats?.todayRevenue || 0)}
-          icon={IndianRupee}
-          color="from-accent-600 to-accent-700"
+          title="Total Bills"
+          value={String(stats?.totalBillCount || 0)}
+          subtitle="Excluding cancelled"
+          icon={FileText}
+          color="from-navy-500 to-navy-600"
           delay={0}
         />
         <StatCard
-          title="Monthly Revenue"
-          value={formatCurrency(stats?.monthRevenue || 0)}
-          icon={TrendingUp}
-          color="from-navy-500 to-navy-600"
+          title="Total Billed Amount"
+          value={formatCurrency(stats?.totalBillAmount || 0)}
+          subtitle={`${stats?.totalBillCount || 0} invoices`}
+          icon={IndianRupee}
+          color="from-purple-500 to-purple-600"
           delay={1}
         />
         <StatCard
-          title="Pending Amount"
-          value={formatCurrency(stats?.pendingAmount || 0)}
-          icon={Clock}
-          color="from-amber-500 to-amber-600"
+          title="Amount Received"
+          value={formatCurrency(stats?.totalReceived || 0)}
+          subtitle="Paid invoices"
+          icon={CheckCircle}
+          color="from-accent-600 to-accent-700"
           delay={2}
         />
         <StatCard
-          title="Today's Bills"
-          value={String(stats?.todayBills || 0)}
-          icon={FileText}
-          color="from-purple-500 to-purple-600"
+          title="Amount Pending"
+          value={formatCurrency(stats?.totalPending || 0)}
+          subtitle="Unpaid invoices"
+          icon={Clock}
+          color="from-amber-500 to-amber-600"
           delay={3}
         />
       </div>
 
-      {/* Quick stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Quick counts */}
+      <div className="grid grid-cols-2 lg:grid-cols-2 gap-4">
         <div className="glass-card p-4 flex items-center gap-3">
           <Users className="w-5 h-5 text-navy-400" />
           <div>
@@ -142,32 +158,16 @@ export default function DashboardPage() {
             <p className="text-xs text-surface-400">Active Products</p>
           </div>
         </div>
-        <div className="glass-card p-4 flex items-center gap-3">
-          <IndianRupee className="w-5 h-5 text-purple-400" />
-          <div>
-            <p className="text-lg font-bold text-white">{formatCurrency(stats?.weekRevenue || 0)}</p>
-            <p className="text-xs text-surface-400">This Week</p>
-          </div>
-        </div>
-        <div className="glass-card p-4 flex items-center gap-3">
-          <TrendingUp className="w-5 h-5 text-amber-400" />
-          <div>
-            <p className="text-lg font-bold text-white">{formatCurrency(stats?.yearRevenue || 0)}</p>
-            <p className="text-xs text-surface-400">This Year</p>
-          </div>
-        </div>
       </div>
 
       {/* Charts row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Sales trend chart */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="glass-card p-6 lg:col-span-2"
-        >
-          <h3 className="text-base font-semibold text-white mb-4">Sales Trend (30 Days)</h3>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+          className="glass-card p-6 lg:col-span-2">
+          <h3 className="text-base font-semibold text-white mb-4">
+            Sales Trend {monthFilter ? '' : '(30 Days)'}
+          </h3>
           {stats?.salesTrend?.length ? (
             <ResponsiveContainer width="100%" height={280}>
               <AreaChart data={stats.salesTrend}>
@@ -191,18 +191,14 @@ export default function DashboardPage() {
             </ResponsiveContainer>
           ) : (
             <div className="h-64 flex items-center justify-center text-surface-500">
-              <p>No sales data yet</p>
+              <p>No sales data for this period</p>
             </div>
           )}
         </motion.div>
 
         {/* Top products */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="glass-card p-6"
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+          className="glass-card p-6">
           <h3 className="text-base font-semibold text-white mb-4">Top Products</h3>
           {stats?.topProducts?.length ? (
             <div className="space-y-3">
@@ -220,49 +216,33 @@ export default function DashboardPage() {
               ))}
             </div>
           ) : (
-            <div className="h-48 flex items-center justify-center text-surface-500">
-              <p>No product data yet</p>
-            </div>
+            <div className="h-48 flex items-center justify-center text-surface-500"><p>No product data</p></div>
           )}
         </motion.div>
       </div>
 
       {/* Recent bills */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-        className="glass-card"
-      >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
+        className="glass-card">
         <div className="p-6 border-b border-surface-800">
           <h3 className="text-base font-semibold text-white">Recent Invoices</h3>
         </div>
         <div className="table-container border-0 rounded-none">
           <table className="table">
             <thead>
-              <tr>
-                <th>Invoice</th>
-                <th>Customer</th>
-                <th>Status</th>
-                <th>Amount</th>
-                <th>Date</th>
-              </tr>
+              <tr><th>Invoice</th><th>Customer</th><th>Status</th><th>Amount</th><th>Date</th></tr>
             </thead>
             <tbody>
               {stats?.recentBills?.length ? stats.recentBills.map((bill: any) => (
-                <tr key={bill.id}>
+                <tr key={bill.id} className="cursor-pointer" onClick={() => navigate(`/bills/${bill.id}`)}>
                   <td className="font-mono text-xs text-navy-400">{bill.invoiceNumber}</td>
                   <td className="text-white font-medium">{bill.customer?.name}</td>
-                  <td>
-                    <span className={`badge ${getStatusClass(bill.status)}`}>{bill.status}</span>
-                  </td>
+                  <td><span className={`badge ${getStatusClass(bill.status)}`}>{bill.status}</span></td>
                   <td className="font-semibold text-white">{formatCurrency(bill.grandTotal)}</td>
                   <td className="text-surface-400">{formatDate(bill.createdAt)}</td>
                 </tr>
               )) : (
-                <tr>
-                  <td colSpan={5} className="text-center text-surface-500 py-8">No bills yet</td>
-                </tr>
+                <tr><td colSpan={5} className="text-center text-surface-500 py-8">No bills yet</td></tr>
               )}
             </tbody>
           </table>

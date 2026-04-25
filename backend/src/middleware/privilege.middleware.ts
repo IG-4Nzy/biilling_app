@@ -17,6 +17,7 @@ export const ALL_PRIVILEGES = [
   'add_customers',
   'edit_customers',
   'view_reports',
+  'view_history',
   'manage_users',
 ] as const;
 
@@ -29,7 +30,7 @@ export type Privilege = (typeof ALL_PRIVILEGES)[number];
  */
 export const DEFAULT_ROLE_PRIVILEGES: Record<string, Privilege[]> = {
   ADMIN: [...ALL_PRIVILEGES],
-  STAFF: ['create_bill', 'view_bill', 'edit_bill', 'status_update', 'add_products', 'edit_products', 'add_customers', 'edit_customers'],
+  STAFF: ['create_bill', 'view_bill', 'edit_bill', 'status_update', 'add_products', 'edit_products', 'add_customers', 'edit_customers', 'view_history'],
   VIEWER: ['view_bill', 'view_reports'],
 };
 

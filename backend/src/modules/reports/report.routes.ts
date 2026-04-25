@@ -1,20 +1,26 @@
 import { Router } from 'express';
 import { prisma } from '../../config/database.js';
 import { authenticate } from '../../middleware/auth.middleware.js';
-import { staffOrAdmin } from '../../middleware/rbac.middleware.js';
+import { requirePrivilege } from '../../middleware/privilege.middleware.js';
 import { exportLimiter } from '../../middleware/rateLimiter.middleware.js';
 import { Prisma } from '@prisma/client';
 
 const router = Router();
-router.use(authenticate, staffOrAdmin);
+router.use(authenticate);
+
+/** Set date to end of day 23:59:59.999 */
+function endOfDay(d: Date): Date {
+  d.setHours(23, 59, 59, 999);
+  return d;
+}
 
 // GET /api/reports/sales — Sales report
-router.get('/sales', async (req, res, next) => {
+router.get('/sales', requirePrivilege('view_reports'), async (req, res, next) => {
   try {
     const { startDate, endDate, groupBy = 'day' } = req.query as any;
 
     const start = startDate ? new Date(startDate) : new Date(new Date().setMonth(new Date().getMonth() - 1));
-    const end = endDate ? new Date(endDate) : new Date();
+    const end = endDate ? endOfDay(new Date(endDate)) : endOfDay(new Date());
 
     let dateFormat: string;
     switch (groupBy) {
@@ -65,7 +71,7 @@ router.get('/sales', async (req, res, next) => {
 });
 
 // GET /api/reports/customers — Customer spending report
-router.get('/customers', async (req, res, next) => {
+router.get('/customers', requirePrivilege('view_reports'), async (req, res, next) => {
   try {
     const { startDate, endDate, limit = 20 } = req.query as any;
 
@@ -73,7 +79,7 @@ router.get('/customers', async (req, res, next) => {
     if (startDate || endDate) {
       where.createdAt = {};
       if (startDate) where.createdAt.gte = new Date(startDate);
-      if (endDate) where.createdAt.lte = new Date(endDate);
+      if (endDate) where.createdAt.lte = endOfDay(new Date(endDate));
     }
 
     const customerSpending = await prisma.bill.groupBy({
@@ -106,7 +112,7 @@ router.get('/customers', async (req, res, next) => {
 });
 
 // GET /api/reports/products — Top products report
-router.get('/products', async (req, res, next) => {
+router.get('/products', requirePrivilege('view_reports'), async (req, res, next) => {
   try {
     const { startDate, endDate, limit = 20 } = req.query as any;
 
@@ -149,12 +155,12 @@ router.get('/products', async (req, res, next) => {
 });
 
 // GET /api/reports/export — Export data as CSV
-router.get('/export', exportLimiter, async (req, res, next) => {
+router.get('/export', exportLimiter, requirePrivilege('view_reports'), async (req, res, next) => {
   try {
     const { type = 'bills', startDate, endDate, format = 'csv' } = req.query as any;
 
     const start = startDate ? new Date(startDate) : new Date(new Date().setMonth(new Date().getMonth() - 3));
-    const end = endDate ? new Date(endDate) : new Date();
+    const end = endDate ? endOfDay(new Date(endDate)) : endOfDay(new Date());
 
     if (type === 'bills') {
       const bills = await prisma.bill.findMany({
@@ -184,7 +190,7 @@ router.get('/export', exportLimiter, async (req, res, next) => {
 });
 
 // GET /api/reports/audit-logs — Audit log report (admin)
-router.get('/audit-logs', async (req, res, next) => {
+router.get('/audit-logs', requirePrivilege('view_history'), async (req, res, next) => {
   try {
     const { page = 1, limit = 50, userId, entity, action } = req.query as any;
     const skip = (parseInt(page) - 1) * parseInt(limit);

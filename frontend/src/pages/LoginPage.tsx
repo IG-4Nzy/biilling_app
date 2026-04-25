@@ -14,10 +14,8 @@ export default function LoginPage() {
   const { setAuth } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [mfaMode, setMfaMode] = useState(false);
-  const [mfaCode, setMfaCode] = useState('');
 
-  const { register, handleSubmit, formState: { errors }, getValues } = useForm<LoginInput>({
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
   });
@@ -25,15 +23,7 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginInput) => {
     setLoading(true);
     try {
-      const result = await authService.login(data.email, data.password, mfaMode ? mfaCode : undefined);
-
-      if (result.mfaRequired) {
-        setMfaMode(true);
-        toast('MFA code required', { icon: '🔐' });
-        setLoading(false);
-        return;
-      }
-
+      const result = await authService.login(data.email, data.password);
       setAuth(result.user, result.tokens.accessToken, result.tokens.refreshToken);
       toast.success(`Welcome back, ${result.user.name}!`);
       navigate('/dashboard');
@@ -65,109 +55,71 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-navy-500 to-accent-500 rounded-2xl mb-4 shadow-glow">
             <Zap className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white">BillForge</h1>
-          <p className="text-surface-400 mt-1">Enterprise Billing System</p>
+          <h1 className="text-3xl font-bold text-white">ECMF</h1>
+          <p className="text-surface-400 mt-1">Billing System</p>
         </div>
 
         {/* Login card */}
         <div className="glass-card p-8">
           <div className="flex items-center gap-2 mb-6">
             <Shield className="w-5 h-5 text-navy-400" />
-            <h2 className="text-lg font-semibold text-white">
-              {mfaMode ? 'Two-Factor Authentication' : 'Sign In'}
-            </h2>
+            <h2 className="text-lg font-semibold text-white">Sign In</h2>
           </div>
 
-          {!mfaMode ? (
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" id="login-form">
-              <div>
-                <label htmlFor="email" className="label">Email Address</label>
-                <input
-                  id="email"
-                  type="email"
-                  {...register('email')}
-                  className={`input ${errors.email ? 'input-error' : ''}`}
-                  placeholder="admin@billing.com"
-                  autoComplete="email"
-                  autoFocus
-                />
-                {errors.email && (
-                  <p className="mt-1 text-xs text-red-400">{errors.email.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="password" className="label">Password</label>
-                <div className="relative">
-                  <input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    {...register('password')}
-                    className={`input pr-10 ${errors.password ? 'input-error' : ''}`}
-                    placeholder="••••••••"
-                    autoComplete="current-password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-surface-500 hover:text-white transition-colors"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                {errors.password && (
-                  <p className="mt-1 text-xs text-red-400">{errors.password.message}</p>
-                )}
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="btn-primary w-full py-3"
-                id="login-submit"
-              >
-                {loading ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> Signing in...</>
-                ) : (
-                  'Sign In'
-                )}
-              </button>
-            </form>
-          ) : (
-            <div className="space-y-5">
-              <p className="text-sm text-surface-400">
-                Enter the 6-digit code from your authenticator app.
-              </p>
-              <div>
-                <label htmlFor="mfa-code" className="label">Authentication Code</label>
-                <input
-                  id="mfa-code"
-                  type="text"
-                  value={mfaCode}
-                  onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  className="input text-center text-2xl tracking-[0.5em] font-mono"
-                  placeholder="000000"
-                  maxLength={6}
-                  autoFocus
-                />
-              </div>
-              <div className="flex gap-3">
-                <button onClick={() => setMfaMode(false)} className="btn-secondary flex-1">
-                  Back
-                </button>
-                <button
-                  onClick={() => {
-                    const values = getValues();
-                    handleSubmit(() => onSubmit({ ...values, mfaCode }))();
-                  }}
-                  disabled={mfaCode.length !== 6 || loading}
-                  className="btn-primary flex-1"
-                >
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verify'}
-                </button>
-              </div>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" id="login-form">
+            <div>
+              <label htmlFor="email" className="label">Email Address</label>
+              <input
+                id="email"
+                type="email"
+                {...register('email')}
+                className={`input ${errors.email ? 'input-error' : ''}`}
+                placeholder="admin@billing.com"
+                autoComplete="email"
+                autoFocus
+              />
+              {errors.email && (
+                <p className="mt-1 text-xs text-red-400">{errors.email.message}</p>
+              )}
             </div>
-          )}
+
+            <div>
+              <label htmlFor="password" className="label">Password</label>
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  {...register('password')}
+                  className={`input pr-10 ${errors.password ? 'input-error' : ''}`}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-surface-500 hover:text-white transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {errors.password && (
+                <p className="mt-1 text-xs text-red-400">{errors.password.message}</p>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary w-full py-3"
+              id="login-submit"
+            >
+              {loading ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Signing in...</>
+              ) : (
+                'Sign In'
+              )}
+            </button>
+          </form>
 
           {/* Demo credentials */}
           <div className="mt-6 pt-5 border-t border-surface-800">
@@ -179,9 +131,6 @@ export default function LoginPage() {
                   const emailField = document.getElementById('email') as HTMLInputElement;
                   const passField = document.getElementById('password') as HTMLInputElement;
                   if (emailField && passField) {
-                    emailField.value = 'admin@billing.com';
-                    passField.value = 'Admin@1234';
-                    // Trigger React form update
                     const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!;
                     nativeInputValueSetter.call(emailField, 'admin@billing.com');
                     nativeInputValueSetter.call(passField, 'Admin@1234');
@@ -215,7 +164,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-xs text-surface-600 mt-6">
-          Enterprise Billing System v1.0 • Secured with AES-256
+          ECMF Billing System v1.0 • Secured with AES-256
         </p>
       </motion.div>
     </div>

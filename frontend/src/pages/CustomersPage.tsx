@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ConfirmModal from '../components/ConfirmModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Search, Edit2, Trash2, X, Loader2, Users as UsersIcon } from 'lucide-react';
@@ -13,6 +14,7 @@ export default function CustomersPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
 
@@ -128,7 +130,7 @@ export default function CustomersPage() {
                   <td className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       <button onClick={() => openModal(c)} className="btn-icon"><Edit2 className="w-4 h-4" /></button>
-                      <button onClick={() => { if (confirm('Delete this customer?')) deleteMutation.mutate(c.id); }} className="btn-icon">
+                      <button onClick={() => setDeleteTarget(c.id)} className="btn-icon">
                         <Trash2 className="w-4 h-4 text-red-400" />
                       </button>
                     </div>
@@ -217,6 +219,15 @@ export default function CustomersPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        title="Delete Customer"
+        message="Are you sure you want to delete this customer?"
+        confirmLabel="Delete"
+        onConfirm={() => { if (deleteTarget) deleteMutation.mutate(deleteTarget); setDeleteTarget(null); }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

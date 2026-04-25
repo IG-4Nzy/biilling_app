@@ -78,6 +78,10 @@ export function createApp() {
   app.use('/api/reports', reportRoutes);
   app.use('/api/company', companyRoutes);
 
+
+  // ─── Serve uploaded files ───
+  app.use('/uploads', express.static(path.resolve(__dirname, '../../uploads')));
+
   // ─── API 404 handler ───
   app.all('/api/*', notFoundHandler);
 
