@@ -299,7 +299,7 @@ export default function CreateBillPage() {
       </div>
 
       {/* Line Items */}
-      <div className="glass-card p-5" style={{ overflow: 'visible' }}>
+      <div className="glass-card p-5 relative z-20" style={{ overflow: 'visible' }}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-surface-300 uppercase tracking-wide">Line Items</h3>
           <button onClick={addItem} className="btn-secondary text-sm py-1.5"><Plus className="w-4 h-4" /> Add Item</button>
@@ -315,12 +315,13 @@ export default function CreateBillPage() {
           <div className="col-span-1"></div>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2" style={{ overflow: 'visible' }}>
           {items.map((item, idx) => {
             const gross = item.quantity * item.unitPrice;
             return (
               <motion.div key={idx} initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-                className="grid grid-cols-1 lg:grid-cols-12 gap-2 p-3 bg-surface-800/30 rounded-lg items-center">
+                className="grid grid-cols-1 lg:grid-cols-12 gap-2 p-3 bg-surface-800/30 rounded-lg items-center"
+                style={{ position: 'relative', zIndex: items.length - idx }}>
                 <div className="lg:col-span-3">
                   <ProductSearch products={products} value={item.productId || ''} onChange={(id) => selectProduct(idx, id)} />
                 </div>

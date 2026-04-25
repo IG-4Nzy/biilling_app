@@ -80,7 +80,7 @@ export function createApp() {
 
 
   // ─── Serve uploaded files ───
-  app.use('/uploads', express.static(path.resolve(__dirname, '../../uploads')));
+  app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
 
   // ─── API 404 handler ───
   app.all('/api/*', notFoundHandler);

@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, FileText, Users, Package, BarChart3,
@@ -6,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
-import { authService } from '../../services/api';
+import { authService, companyService } from '../../services/api';
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -26,6 +27,12 @@ export default function Sidebar() {
   const { user, refreshToken, logout: authLogout } = useAuthStore();
   const { sidebarOpen, sidebarCollapsed, isMobile, setSidebarOpen, toggleCollapse } = useUIStore();
 
+  const { data: company } = useQuery({
+    queryKey: ['company'],
+    queryFn: companyService.get,
+    staleTime: 5 * 60 * 1000,
+  });
+
   const handleLogout = async () => {
     try {
       if (refreshToken) await authService.logout(refreshToken);
@@ -43,8 +50,13 @@ export default function Sidebar() {
         onClick={() => !isMobile && toggleCollapse()}
         title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       >
-        <div className="w-9 h-9 bg-gradient-to-br from-navy-500 to-accent-500 rounded-lg flex items-center justify-center flex-shrink-0">
-          <Zap className="w-5 h-5 text-white" />
+        <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden"
+          style={company?.logoPath ? {} : { background: 'linear-gradient(135deg, var(--color-navy-500), var(--color-accent-500))' }}>
+          {company?.logoPath ? (
+            <img src={company.logoPath} alt="Logo" className="w-full h-full object-contain" />
+          ) : (
+            <Zap className="w-5 h-5 text-white" />
+          )}
         </div>
         {!sidebarCollapsed && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="overflow-hidden flex-1">

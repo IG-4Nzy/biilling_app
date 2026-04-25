@@ -73,13 +73,20 @@ export default function InvoicePreviewPage() {
         <div className="p-6">
 
           {/* ─── HEADER ─── */}
-          <div className="text-center border-b-2 border-black pb-3 mb-2">
-            <h1 className="text-xl font-bold tracking-wide">{company?.name || 'Company Name'}</h1>
-            <p className="text-[10px]">{company?.address || ''}</p>
-            <p className="text-[10px]">{company?.city || ''} - {company?.pincode || ''}</p>
-            {company?.regNo && <p className="text-[10px]">Reg.No. {company.regNo} {company.factoryRegNo ? `Factories Reg No. ${company.factoryRegNo}` : ''}</p>}
-            <p className="text-[10px]">Phone: {company?.phone || ''}, mobile: {company?.mobile || ''} E-mail: {company?.email || ''}</p>
-            <p className="font-bold text-sm mt-1">INVOICE CASH/CREDIT BILL &nbsp;&nbsp;&nbsp; GSTIN: {company?.gstin || ''}</p>
+          <div className="border-b-2 border-black pb-3 mb-2">
+            <div className="flex items-center gap-4">
+              {company?.logoPath && (
+                <img src={company.logoPath} alt="Logo" className="w-16 h-16 object-contain" />
+              )}
+              <div className={company?.logoPath ? 'flex-1' : 'flex-1 text-center'}>
+                <h1 className="text-xl font-bold tracking-wide">{company?.name || 'Company Name'}</h1>
+                <p className="text-[10px]">{company?.address || ''}</p>
+                <p className="text-[10px]">{company?.city || ''} - {company?.pincode || ''}</p>
+                {company?.regNo && <p className="text-[10px]">Reg.No. {company.regNo} {company.factoryRegNo ? `Factories Reg No. ${company.factoryRegNo}` : ''}</p>}
+                <p className="text-[10px]">Phone: {company?.phone || ''}, mobile: {company?.mobile || ''} E-mail: {company?.email || ''}</p>
+              </div>
+            </div>
+            <p className="font-bold text-sm mt-1 text-center">INVOICE CASH/CREDIT BILL &nbsp;&nbsp;&nbsp; GSTIN: {company?.gstin || ''}</p>
           </div>
 
           {/* ─── INVOICE META ─── */}
