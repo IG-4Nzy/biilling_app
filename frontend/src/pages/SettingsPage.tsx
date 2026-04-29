@@ -1,10 +1,60 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Settings, Key, Building2, Upload, Trash2, X, Loader2, Save, ImageIcon } from 'lucide-react';
+import { Settings, Key, Building2, Upload, Trash2, X, Loader2, Save, ImageIcon, Shield, Hash } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
-import { authService, companyService } from '../services/api';
+import { authService, companyService, billService } from '../services/api';
 import toast from 'react-hot-toast';
+
+function InvoiceCounterControl() {
+  const [currentNumber, setCurrentNumber] = useState<number | null>(null);
+  const [inputVal, setInputVal] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    billService.getNextNumber().then(d => {
+      setCurrentNumber(d.currentNumber);
+      setInputVal(String(d.currentNumber));
+    }).catch(() => {});
+  }, []);
+
+  const handleSave = async () => {
+    const num = parseInt(inputVal);
+    if (isNaN(num) || num < 0) { toast.error('Enter a valid number'); return; }
+    setSaving(true);
+    try {
+      await billService.setCounter(num);
+      setCurrentNumber(num);
+      toast.success(`Last invoice number set to ${num}. Next invoice will be: ${num + 1}`);
+    } catch { toast.error('Failed to update'); }
+    finally { setSaving(false); }
+  };
+
+  if (currentNumber === null) return <div className="skeleton w-40 h-10 rounded" />;
+
+  const nextNum = (parseInt(inputVal) || 0) + 1;
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex gap-3 items-end">
+        <div>
+          <input
+            type="number"
+            value={inputVal}
+            onChange={(e) => setInputVal(e.target.value)}
+            className="input text-sm w-32 font-mono"
+            min={0}
+          />
+        </div>
+        <button onClick={handleSave} disabled={saving || parseInt(inputVal) === currentNumber} className="btn-primary text-sm">
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4" /> Update</>}
+        </button>
+      </div>
+      <p className="text-[11px] text-surface-500">
+        Next invoice will be: <span className="text-accent-400 font-mono font-bold">{nextNum}</span>
+      </p>
+    </div>
+  );
+}
 
 export default function SettingsPage() {
   const { user } = useAuthStore();
@@ -16,6 +66,16 @@ export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  // PIN Unlock Modal
+  const [showPinVerifyModal, setShowPinVerifyModal] = useState(false);
+  const [pinVerifyPassword, setPinVerifyPassword] = useState('');
+  const [pinEditUnlocked, setPinEditUnlocked] = useState(false);
+  const [isVerifyingPin, setIsVerifyingPin] = useState(false);
+
+  // Admin: invoice counter
+  const [lastInvoiceNumber, setLastInvoiceNumber] = useState<string>('');
+  const [counterLoaded, setCounterLoaded] = useState(false);
 
   // Company profile
   const { data: company, isLoading } = useQuery({
@@ -223,6 +283,57 @@ export default function SettingsPage() {
         )}
       </div>
 
+      {/* Admin Settings — PIN + Invoice Counter */}
+      {user?.role === 'ADMIN' && (
+        <div className="glass-card p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <Shield className="w-5 h-5 text-purple-400" />
+            <div>
+              <h3 className="text-base font-semibold text-white">Admin Settings</h3>
+              <p className="text-xs text-surface-400">Preview PIN and invoice numbering</p>
+            </div>
+          </div>
+
+          <div className="space-y-5">
+            {/* Preview PIN */}
+            <div className="p-4 bg-surface-800/40 rounded-lg">
+              <label className="label mb-2">Invoice Preview PIN</label>
+              <p className="text-[11px] text-surface-500 mb-2">When set, users must enter this PIN to view invoice previews. Leave empty to disable.</p>
+              <div className="flex gap-3 items-end">
+                <input
+                  type={pinEditUnlocked ? "text" : "password"}
+                  value={pinEditUnlocked ? getVal('previewPin') : (getVal('previewPin') ? '********' : '')}
+                  onChange={(e) => updateField('previewPin', e.target.value)}
+                  className="input text-sm w-40 font-mono tracking-widest disabled:opacity-50"
+                  placeholder={pinEditUnlocked ? "e.g. 1234" : "••••••••"}
+                  maxLength={10}
+                  disabled={!pinEditUnlocked}
+                  autoComplete="new-password"
+                />
+                {!pinEditUnlocked ? (
+                  <button onClick={() => setShowPinVerifyModal(true)} className="btn-secondary text-sm">
+                    <Key className="w-4 h-4" /> Edit PIN
+                  </button>
+                ) : (
+                  form.previewPin !== undefined && (
+                    <button onClick={() => { saveMutation.mutate(); setPinEditUnlocked(false); }} disabled={saveMutation.isPending} className="btn-primary text-sm">
+                      {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4" /> Save PIN</>}
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+
+            {/* Invoice Counter */}
+            <div className="p-4 bg-surface-800/40 rounded-lg">
+              <label className="label mb-2">Last Invoice Number</label>
+              <p className="text-[11px] text-surface-500 mb-2">Set the last used invoice number. The next invoice will be this + 1.</p>
+              <InvoiceCounterControl />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Change Password Modal */}
       <AnimatePresence>
         {showPasswordModal && (
@@ -255,6 +366,76 @@ export default function SettingsPage() {
                   <button onClick={() => setShowPasswordModal(false)} className="btn-secondary flex-1">Cancel</button>
                   <button onClick={handleChangePassword} disabled={changePasswordMutation.isPending} className="btn-primary flex-1">
                     {changePasswordMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Update Password'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Verify Password for PIN Edit Modal */}
+      <AnimatePresence>
+        {showPinVerifyModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setShowPinVerifyModal(false)}>
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
+              className="glass-card p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <Shield className="w-5 h-5 text-purple-400" />
+                  <h3 className="text-lg font-semibold text-white">Security Check</h3>
+                </div>
+                <button onClick={() => setShowPinVerifyModal(false)} className="btn-icon"><X className="w-4 h-4" /></button>
+              </div>
+              <div className="space-y-4">
+                <p className="text-sm text-surface-400">Please enter your account password to edit the PIN.</p>
+                <div>
+                  <label className="label">Account Password</label>
+                  <input
+                    type="password"
+                    value={pinVerifyPassword}
+                    onChange={(e) => setPinVerifyPassword(e.target.value)}
+                    className="input"
+                    placeholder="Enter password"
+                    autoFocus
+                    autoComplete="new-password"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        setIsVerifyingPin(true);
+                        authService.verifyPassword(pinVerifyPassword)
+                          .then(() => {
+                            setPinEditUnlocked(true);
+                            setShowPinVerifyModal(false);
+                            setPinVerifyPassword('');
+                          })
+                          .catch((err) => toast.error(err.response?.data?.error || 'Authentication failed'))
+                          .finally(() => setIsVerifyingPin(false));
+                      }
+                    }}
+                  />
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button onClick={() => setShowPinVerifyModal(false)} className="btn-secondary flex-1">Cancel</button>
+                  <button
+                    onClick={async () => {
+                      setIsVerifyingPin(true);
+                      try {
+                        await authService.verifyPassword(pinVerifyPassword);
+                        setPinEditUnlocked(true);
+                        setShowPinVerifyModal(false);
+                        setPinVerifyPassword('');
+                      } catch (err: any) {
+                        toast.error(err.response?.data?.error || 'Authentication failed');
+                      } finally {
+                        setIsVerifyingPin(false);
+                      }
+                    }}
+                    disabled={!pinVerifyPassword || isVerifyingPin}
+                    className="btn-primary flex-1"
+                  >
+                    {isVerifyingPin ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Authenticate'}
                   </button>
                 </div>
               </div>

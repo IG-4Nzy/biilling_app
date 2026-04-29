@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Search, FileText, Eye, Edit2, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
-import { billService } from '../services/api';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Plus, Search, FileText, Eye, Edit2, CheckCircle, XCircle, AlertTriangle, Lock, X } from 'lucide-react';
+import { billService, companyService } from '../services/api';
 import { formatCurrency, formatDate, getStatusClass } from '../utils/formatters';
 import { useAuthStore } from '../stores/authStore';
 import toast from 'react-hot-toast';
@@ -20,6 +21,30 @@ export default function BillingPage() {
 
   // Confirmation modal state
   const [confirmAction, setConfirmAction] = useState<{ id: string; status: string; label: string } | null>(null);
+
+  // PIN modal state
+  const [pinModal, setPinModal] = useState<{ billId: string } | null>(null);
+  const [pinInput, setPinInput] = useState('');
+
+  const { data: company } = useQuery({ queryKey: ['company'], queryFn: companyService.get, staleTime: 5 * 60 * 1000 });
+
+  const handlePreviewClick = (billId: string) => {
+    if (company?.previewPin) {
+      setPinModal({ billId });
+      setPinInput('');
+    } else {
+      navigate(`/bills/${billId}`);
+    }
+  };
+
+  const handlePinSubmit = () => {
+    if (pinInput === company?.previewPin) {
+      navigate(`/bills/${pinModal!.billId}`);
+      setPinModal(null);
+    } else {
+      toast.error('Incorrect PIN');
+    }
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ['bills', page, search, statusFilter, monthFilter],
@@ -127,7 +152,7 @@ export default function BillingPage() {
                     {canEdit && (
                       <td className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => navigate(`/bills/${bill.id}`)} className="btn-icon" title="View">
+                          <button onClick={() => handlePreviewClick(bill.id)} className="btn-icon" title="View">
                             <Eye className="w-4 h-4 text-surface-400" />
                           </button>
                           {bill.status !== 'CANCELLED' && (
@@ -203,6 +228,41 @@ export default function BillingPage() {
           </div>
         </div>
       )}
+
+      {/* ─── PIN Modal ─── */}
+      <AnimatePresence>
+        {pinModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setPinModal(null)}>
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
+              className="glass-card p-6 w-full max-w-xs" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Lock className="w-5 h-5 text-navy-400" />
+                  <h3 className="text-base font-semibold text-white">Enter PIN</h3>
+                </div>
+                <button onClick={() => setPinModal(null)} className="btn-icon"><X className="w-4 h-4" /></button>
+              </div>
+              <input
+                type="password"
+                value={pinInput}
+                onChange={(e) => setPinInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handlePinSubmit()}
+                className="input text-center text-lg tracking-[0.5em] font-mono mb-4"
+                placeholder="••••"
+                autoFocus
+                autoComplete="new-password"
+                maxLength={10}
+              />
+              <div className="flex gap-3">
+                <button onClick={() => setPinModal(null)} className="btn-secondary flex-1">Cancel</button>
+                <button onClick={handlePinSubmit} className="btn-primary flex-1">Verify</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -93,7 +93,7 @@ export default function InvoicePreviewPage() {
           <table className="w-full text-[10px] border border-black mb-1" style={{ borderCollapse: 'collapse' }}>
             <tbody>
               <tr>
-                <td className="border border-black px-2 py-1 w-1/4">Invoice no: <strong>{bill.invoiceNumber?.replace('INV-2026-', '')}</strong></td>
+                <td className="border border-black px-2 py-1 w-1/4">Invoice no: <strong>{bill.invoiceNumber}</strong></td>
                 <td className="border border-black px-2 py-1 w-1/4">Invoice Date: <strong>{formatDate(bill.invoiceDate || bill.createdAt)}</strong></td>
                 <td className="border border-black px-2 py-1 w-1/4">Purchase Order No: <strong>{bill.purchaseOrderNo || ''}</strong></td>
                 <td className="border border-black px-2 py-1 w-1/4">P.O. Date: <strong>{formatDate(bill.poDate)}</strong></td>
@@ -164,11 +164,11 @@ export default function InvoicePreviewPage() {
                   <td className="border border-black px-1 py-1 text-right">{fmtCurrency(item.unitPrice)}</td>
                   <td className="border border-black px-1 py-1 text-center">{String(item.quantity).replace(/\.0+$/, '')}</td>
                   <td className="border border-black px-1 py-1 text-right">{fmtCurrency(item.grossValue)}</td>
-                  <td className="border border-black px-1 py-1 text-center"></td>
-                  <td className="border border-black px-1 py-1 text-right"></td>
-                  <td className="border border-black px-1 py-1 text-center"></td>
-                  <td className="border border-black px-1 py-1 text-right"></td>
-                  <td className="border border-black px-1 py-1 text-right"></td>
+                  <td className="border border-black px-1 py-1 text-center">{item.cgstRate}%</td>
+                  <td className="border border-black px-1 py-1 text-right">{fmtCurrency(item.grossValue * (item.cgstRate / 100))}</td>
+                  <td className="border border-black px-1 py-1 text-center">{item.sgstRate}%</td>
+                  <td className="border border-black px-1 py-1 text-right">{fmtCurrency(item.grossValue * (item.sgstRate / 100))}</td>
+                  <td className="border border-black px-1 py-1 text-right">{fmtCurrency(item.grossValue + item.grossValue * ((item.cgstRate + item.sgstRate) / 100))}</td>
                 </tr>
               ))}
               {/* Totals row */}

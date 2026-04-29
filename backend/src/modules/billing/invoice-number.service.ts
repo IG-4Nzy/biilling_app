@@ -3,7 +3,7 @@ import { logger } from '../../utils/logger.js';
 
 /**
  * Invoice Number Generation Service
- * Format: INV-YYYY-NNNNNN (e.g., INV-2026-000001)
+ * Generates sequential invoice numbers (plain numbers: 1, 2, 3...)
  * Uses PostgreSQL row-level locking for atomic increment
  */
 export class InvoiceNumberService {
@@ -11,8 +11,9 @@ export class InvoiceNumberService {
    * Generate the next unique invoice number
    * Thread-safe via SELECT ... FOR UPDATE
    */
-  async getNextInvoiceNumber(prefix = 'INV'): Promise<string> {
+  async getNextInvoiceNumber(): Promise<string> {
     const year = new Date().getFullYear();
+    const prefix = 'INV';
 
     // Use a transaction with row-level locking
     const result = await prisma.$transaction(async (tx) => {
@@ -37,8 +38,7 @@ export class InvoiceNumberService {
       return counter;
     });
 
-    const paddedNumber = String(result.currentNumber).padStart(6, '0');
-    const invoiceNumber = `${prefix}-${year}-${paddedNumber}`;
+    const invoiceNumber = String(result.currentNumber);
 
     logger.debug(`Generated invoice number: ${invoiceNumber}`);
     return invoiceNumber;

@@ -14,6 +14,11 @@ export const authService = {
     return data.data;
   },
 
+  verifyPassword: async (password: string) => {
+    const { data } = await api.post('/auth/verify-password', { password });
+    return data;
+  },
+
   logout: async (refreshToken: string) => {
     await api.post('/auth/logout', { refreshToken });
   },
@@ -61,6 +66,16 @@ export const billService = {
 
   delete: async (id: string) => {
     await api.delete(`/bills/${id}`);
+  },
+
+  getNextNumber: async () => {
+    const { data } = await api.get('/bills/meta/next-number');
+    return data.data;
+  },
+
+  setCounter: async (lastNumber: number) => {
+    const { data } = await api.put('/bills/meta/set-counter', { lastNumber });
+    return data.data;
   },
 };
 

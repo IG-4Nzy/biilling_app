@@ -76,6 +76,7 @@ export default function CreateBillPage() {
   const { id: editId } = useParams();
 
   const [customerId, setCustomerId] = useState('');
+  const [invoiceNumber, setInvoiceNumber] = useState('');
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
   const [purchaseOrderNo, setPurchaseOrderNo] = useState('');
   const [poDate, setPoDate] = useState('');
@@ -97,6 +98,13 @@ export default function CreateBillPage() {
   const { data: productsData } = useQuery({ queryKey: ['products', 'all'], queryFn: () => productService.list({ limit: 200 }) });
   const { data: editBill } = useQuery({ queryKey: ['bill', editId], queryFn: () => billService.getById(editId!), enabled: !!editId });
 
+  // Fetch next invoice number for new bills
+  useEffect(() => {
+    if (!editId) {
+      billService.getNextNumber().then(d => setInvoiceNumber(d.invoiceNumber)).catch(() => {});
+    }
+  }, [editId]);
+
   const customers = customersData?.data || [];
   const products = productsData?.data || [];
 
@@ -104,6 +112,7 @@ export default function CreateBillPage() {
   useEffect(() => {
     if (editBill) {
       setCustomerId(editBill.customerId || '');
+      setInvoiceNumber(editBill.invoiceNumber || '');
       setInvoiceDate(editBill.invoiceDate ? new Date(editBill.invoiceDate).toISOString().split('T')[0] : '');
       setPurchaseOrderNo(editBill.purchaseOrderNo || '');
       setPoDate(editBill.poDate ? new Date(editBill.poDate).toISOString().split('T')[0] : '');
@@ -231,6 +240,7 @@ export default function CreateBillPage() {
         <div className="glass-card p-5 space-y-4">
           <h3 className="text-sm font-semibold text-surface-300 uppercase tracking-wide">Invoice Details</h3>
           <div className="grid grid-cols-2 gap-3">
+            <div><label className="label">Invoice No *</label><input type="text" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} className="input text-sm font-mono font-bold text-accent-400" readOnly={!!editId} placeholder="000001" /></div>
             <div><label className="label">Invoice Date *</label><input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} className="input text-sm" /></div>
             <div><label className="label">Purchase Order No</label><input type="text" value={purchaseOrderNo} onChange={(e) => setPurchaseOrderNo(e.target.value)} className="input text-sm" placeholder="PO Number" /></div>
             <div><label className="label">P.O. Date</label><input type="date" value={poDate} onChange={(e) => setPoDate(e.target.value)} className="input text-sm" /></div>

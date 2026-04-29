@@ -104,6 +104,7 @@ export const companyProfileSchema = z.object({
   bankBranch: z.string().max(100).optional().or(z.literal('')),
   bankAccount: z.string().max(30).optional().or(z.literal('')),
   bankIfsc: z.string().max(11).optional().or(z.literal('')),
+  previewPin: z.string().max(10).optional().or(z.literal('')),
 });
 
 // Re-export type helpers

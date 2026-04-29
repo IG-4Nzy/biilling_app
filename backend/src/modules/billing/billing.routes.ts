@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { billingService } from './billing.service.js';
+import { prisma } from '../../config/database.js';
 import { authenticate } from '../../middleware/auth.middleware.js';
 import { staffOrAdmin } from '../../middleware/rbac.middleware.js';
 import { requirePrivilege } from '../../middleware/privilege.middleware.js';
@@ -11,6 +12,39 @@ import { z } from 'zod';
 
 const router = Router();
 router.use(authenticate);
+
+// ─── Meta routes (must be before /:id) ───
+
+// GET /api/bills/meta/next-number — Preview the next invoice number (no increment)
+router.get('/meta/next-number', requirePrivilege('create_bill'), async (req, res, next) => {
+  try {
+    const year = new Date().getFullYear();
+    const prefix = 'INV';
+    const counter = await prisma.invoiceCounter.findFirst({ where: { prefix, year } });
+    const nextNum = (counter?.currentNumber ?? 0) + 1;
+    res.json({ success: true, data: { invoiceNumber: String(nextNum), currentNumber: counter?.currentNumber ?? 0 } });
+  } catch (err) { next(err); }
+});
+
+// PUT /api/bills/meta/set-counter — Admin: set the last invoice number
+router.put('/meta/set-counter', staffOrAdmin, async (req: AuthRequest, res, next) => {
+  try {
+    const { lastNumber } = req.body;
+    if (typeof lastNumber !== 'number' || lastNumber < 0) {
+      res.status(400).json({ success: false, error: 'Invalid number' }); return;
+    }
+    const year = new Date().getFullYear();
+    const prefix = 'INV';
+    const counter = await prisma.invoiceCounter.upsert({
+      where: { id: `counter-inv-${year}` },
+      update: { currentNumber: lastNumber },
+      create: { id: `counter-inv-${year}`, prefix, year, currentNumber: lastNumber },
+    });
+    res.json({ success: true, data: counter });
+  } catch (err) { next(err); }
+});
+
+// ─── Standard CRUD routes ───
 
 // GET /api/bills — List bills
 router.get('/', requirePrivilege('view_bill'), async (req: AuthRequest, res, next) => {
@@ -60,10 +94,6 @@ router.patch('/:id/status', requirePrivilege('status_update'), auditLog('bill'),
   validate(z.object({ status: z.enum(['DRAFT', 'UNPAID', 'PAID', 'CANCELLED']) })),
   async (req: AuthRequest, res, next) => {
     try {
-      // Cancel requires cancel_bill privilege
-      if (req.body.status === 'CANCELLED') {
-        // Check cancel privilege — handled by separate check
-      }
       const bill = await billingService.updateBillStatus(req.params.id, req.body.status, req.userId);
       res.json({ success: true, data: bill });
     } catch (err) { next(err); }

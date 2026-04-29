@@ -58,4 +58,22 @@ router.delete('/sessions/:id', authenticate, (req, res, next) => {
   authController.revokeSession(req, res).catch(next);
 });
 
+// Verify password (for sensitive actions)
+router.post(
+  '/verify-password',
+  authenticate,
+  validate(z.object({ password: z.string().min(1, 'Password required') })),
+  async (req: AuthRequest, res, next) => {
+    try {
+      const user = await prisma.user.findUnique({ where: { id: req.userId! } });
+      if (!user) { res.status(404).json({ success: false, error: 'User not found' }); return; }
+
+      const valid = await bcrypt.compare(req.body.password, user.passwordHash);
+      if (!valid) { res.status(400).json({ success: false, error: 'Incorrect password' }); return; }
+
+      res.json({ success: true });
+    } catch (err) { next(err); }
+  }
+);
+
 export default router;
